@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { RankedClient } from "../src/index.js";
+import { RankedClient, type RankedRequestOptions } from "../src/index.js";
 
 describe("request URLs", () => {
   it("serializes query parameters and omits undefined values", async () => {
@@ -16,7 +16,9 @@ describe("request URLs", () => {
     });
 
     await client.fetch("matches?existing=kept", {
+      body: "request body",
       headers: { Accept: "application/json" },
+      method: "POST",
       query: {
         count: 25,
         distinct: false,
@@ -29,8 +31,45 @@ describe("request URLs", () => {
       "https://ranked.example/api/matches?existing=kept&count=25&distinct=false&search=two+words",
     );
     expect(requestInit).toEqual({
+      body: "request body",
+      headers: { Accept: "application/json" },
+      method: "POST",
+    });
+  });
+
+  it("limits processed requests to GET options", async () => {
+    let requestInit: RequestInit | undefined;
+    const client = new RankedClient({
+      fetch: async (_input, init) => {
+        requestInit = init;
+        return new Response(JSON.stringify({ status: "success", data: "ok" }), {
+          status: 200,
+        });
+      },
+    });
+
+    await client.request("status", {
+      body: "ignored",
+      headers: { Accept: "application/json" },
+      method: "POST",
+    } as unknown as RankedRequestOptions);
+
+    expect(requestInit).toMatchObject({
       headers: { Accept: "application/json" },
     });
+    expect(requestInit?.body).toBeUndefined();
+    expect(requestInit?.method).toBeUndefined();
+  });
+
+  it("does not retry low-level fetch failures", async () => {
+    const cause = new TypeError("offline");
+    const fetchImplementation = vi.fn(async () => {
+      throw cause;
+    });
+    const client = new RankedClient({ fetch: fetchImplementation });
+
+    await expect(client.fetch("status")).rejects.toBe(cause);
+    expect(fetchImplementation).toHaveBeenCalledOnce();
   });
 
   it.each([

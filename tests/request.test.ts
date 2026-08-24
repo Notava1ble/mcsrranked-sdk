@@ -1,8 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { RankedClient, RankedError } from "../src/index.js";
 
 describe("request", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
   it("throws a RankedError for an HTTP failure", async () => {
     const errorResponse = {
       status: "error",
@@ -12,12 +17,15 @@ describe("request", () => {
         },
       },
     };
-    const client = new RankedClient({
-      fetch: async () =>
+    const fetchImplementation = vi.fn(
+      async () =>
         new Response(JSON.stringify(errorResponse), {
           headers: { "Content-Type": "application/json" },
           status: 400,
         }),
+    );
+    const client = new RankedClient({
+      fetch: fetchImplementation,
     });
 
     const error = await client
@@ -30,6 +38,7 @@ describe("request", () => {
       status: 400,
       details: errorResponse.data,
     });
+    expect(fetchImplementation).toHaveBeenCalledOnce();
   });
 
   it("keeps the HTTP error when its response body is not JSON", async () => {
@@ -80,12 +89,15 @@ describe("request", () => {
   });
 
   it("throws INVALID_RESPONSE when the response is not JSON", async () => {
-    const client = new RankedClient({
-      fetch: async () =>
+    const fetchImplementation = vi.fn(
+      async () =>
         new Response("not JSON", {
           headers: { "Content-Type": "application/json" },
           status: 200,
         }),
+    );
+    const client = new RankedClient({
+      fetch: fetchImplementation,
     });
 
     const error = await client
@@ -97,6 +109,7 @@ describe("request", () => {
       code: "INVALID_RESPONSE",
       cause: expect.any(SyntaxError),
     });
+    expect(fetchImplementation).toHaveBeenCalledOnce();
   });
 
   it("throws INVALID_RESPONSE when the response envelope is invalid", async () => {
@@ -122,10 +135,12 @@ describe("request", () => {
 
   it("throws NETWORK_ERROR when fetch fails", async () => {
     const cause = new TypeError("fetch failed");
+    const fetchImplementation = vi.fn(async () => {
+      throw cause;
+    });
     const client = new RankedClient({
-      fetch: async () => {
-        throw cause;
-      },
+      retries: 0,
+      fetch: fetchImplementation,
     });
 
     const error = await client
@@ -135,6 +150,7 @@ describe("request", () => {
     expect(error).toBeInstanceOf(RankedError);
     expect(error).toMatchObject({ code: "NETWORK_ERROR" });
     expect(error.cause).toBe(cause);
+    expect(fetchImplementation).toHaveBeenCalledOnce();
   });
 
   it("wraps a RankedError thrown by the fetch implementation", async () => {
@@ -143,6 +159,7 @@ describe("request", () => {
       status: 418,
     });
     const client = new RankedClient({
+      retries: 0,
       fetch: async () => {
         throw cause;
       },
@@ -161,6 +178,7 @@ describe("request", () => {
   it("throws TIMEOUT when the configured deadline expires", async () => {
     const fetchAbort = new Error("fetch implementation aborted");
     const client = new RankedClient({
+      retries: 0,
       timeout: 1,
       fetch: async (_input, init) =>
         new Promise<Response>((_resolve, reject) => {
@@ -192,6 +210,7 @@ describe("request", () => {
   it("keeps the timeout active while reading the response body", async () => {
     const bodyAbort = new Error("response body aborted");
     const client = new RankedClient({
+      retries: 0,
       timeout: 1,
       fetch: async (_input, init) => {
         const body = new ReadableStream({
@@ -255,4 +274,170 @@ describe("request", () => {
     expect(error).toMatchObject({ code: "ABORTED" });
     expect(error.cause).toBe(cause);
   });
+
+  it("retries twice by default and returns a later success", async () => {
+    const firstFailure = new TypeError("connection reset");
+    const secondFailure = new TypeError("DNS lookup failed");
+    const fetchImplementation = vi
+      .fn<typeof fetch>()
+      .mockRejectedValueOnce(firstFailure)
+      .mockRejectedValueOnce(secondFailure)
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ status: "success", data: { ok: true } }),
+          { status: 200 },
+        ),
+      );
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const client = new RankedClient({ fetch: fetchImplementation });
+
+    const result = await client.request<{ ok: boolean }>("status");
+
+    expect(result).toEqual({ ok: true });
+    expect(fetchImplementation).toHaveBeenCalledTimes(3);
+  });
+
+  it("throws the final error after exhausting retries", async () => {
+    const causes = [
+      new TypeError("first failure"),
+      new TypeError("second failure"),
+      new TypeError("final failure"),
+    ];
+    let attempt = 0;
+    const fetchImplementation = vi.fn(async () => {
+      const cause = causes[attempt];
+      attempt += 1;
+      throw cause;
+    });
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const client = new RankedClient({ fetch: fetchImplementation });
+
+    const error = await client.request("status").catch((cause) => cause);
+
+    expect(error).toBeInstanceOf(RankedError);
+    if (!(error instanceof RankedError)) {
+      return;
+    }
+    expect(error).toMatchObject({ code: "NETWORK_ERROR" });
+    expect(error.cause).toBe(causes[2]);
+    expect(fetchImplementation).toHaveBeenCalledTimes(3);
+  });
+
+  it("retries with a fresh timeout", async () => {
+    let attempt = 0;
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const fetchImplementation = vi.fn(async (_input, init) => {
+      attempt += 1;
+
+      if (attempt === 1) {
+        return new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener(
+            "abort",
+            () => reject(new Error("first attempt aborted")),
+            { once: true },
+          );
+        });
+      }
+
+      return new Response(
+        JSON.stringify({ status: "success", data: "available" }),
+        { status: 200 },
+      );
+    });
+    const client = new RankedClient({
+      fetch: fetchImplementation,
+      retries: 1,
+      timeout: 1,
+    });
+
+    const result = await client.request<string>("status");
+
+    expect(result).toBe("available");
+    expect(fetchImplementation).toHaveBeenCalledTimes(2);
+  });
+
+  it("doubles full-jitter delay bounds up to five seconds", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+    const attemptTimes: number[] = [];
+    const client = new RankedClient({
+      retries: 6,
+      fetch: async () => {
+        attemptTimes.push(Date.now());
+        throw new TypeError("offline");
+      },
+    });
+
+    const request = client.request("status").catch((error) => error);
+    await vi.runAllTimersAsync();
+    const error = await request;
+
+    expect(error).toMatchObject({ code: "NETWORK_ERROR" });
+    expect(attemptTimes).toEqual([0, 250, 750, 1_750, 3_750, 6_250, 8_750]);
+  });
+
+  it("aborts during a retry delay without another fetch call", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+    const controller = new AbortController();
+    const reason = new DOMException("caller cancelled", "AbortError");
+    const fetchImplementation = vi.fn(async () => {
+      throw new TypeError("offline");
+    });
+    const client = new RankedClient({ fetch: fetchImplementation });
+
+    const request = client
+      .request("status", { signal: controller.signal })
+      .catch((error) => error);
+    await vi.advanceTimersByTimeAsync(0);
+    controller.abort(reason);
+    const error = await request;
+
+    expect(error).toBeInstanceOf(RankedError);
+    if (!(error instanceof RankedError)) {
+      return;
+    }
+    expect(error).toMatchObject({ code: "ABORTED" });
+    expect(error.cause).toBe(reason);
+    expect(fetchImplementation).toHaveBeenCalledOnce();
+  });
+
+  it("does not call fetch when the caller signal is already aborted", async () => {
+    const controller = new AbortController();
+    const reason = new DOMException("already cancelled", "AbortError");
+    controller.abort(reason);
+    const fetchImplementation = vi.fn(async () => new Response());
+    const client = new RankedClient({ fetch: fetchImplementation });
+
+    const error = await client
+      .request("status", { signal: controller.signal })
+      .catch((cause) => cause);
+
+    expect(error).toBeInstanceOf(RankedError);
+    if (!(error instanceof RankedError)) {
+      return;
+    }
+    expect(error).toMatchObject({ code: "ABORTED" });
+    expect(error.cause).toBe(reason);
+    expect(fetchImplementation).not.toHaveBeenCalled();
+  });
+
+  it.each([-1, 0.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    "rejects an invalid retry count: %s",
+    (retries) => {
+      expect(() => new RankedClient({ retries })).toThrow(
+        "MCSR Ranked retries must be a finite, non-negative integer",
+      );
+    },
+  );
+
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
+    "rejects an invalid timeout: %s",
+    (timeout) => {
+      expect(() => new RankedClient({ timeout })).toThrow(
+        "MCSR Ranked timeout must be a finite, positive number",
+      );
+    },
+  );
 });

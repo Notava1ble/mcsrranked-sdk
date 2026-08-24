@@ -1,7 +1,13 @@
 import type { QueryParameters } from "./url.js";
 
-export interface RankedRequestOptions extends RequestInit {
+export interface RankedFetchOptions extends RequestInit {
   readonly query?: QueryParameters;
+}
+
+export interface RankedRequestOptions {
+  readonly query?: QueryParameters;
+  readonly headers?: HeadersInit;
+  readonly signal?: AbortSignal;
 }
 
 export interface CompletedRequest<T> {
@@ -14,8 +20,8 @@ export type RouteRequester = <T>(
   options?: RankedRequestOptions,
 ) => Promise<CompletedRequest<T>>;
 
-export function requestInitWithoutQuery(
-  options: RankedRequestOptions | undefined,
+export function fetchInitWithoutQuery(
+  options: RankedFetchOptions | undefined,
 ): RequestInit | undefined {
   if (options === undefined) {
     return undefined;

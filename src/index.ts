@@ -7,7 +7,10 @@ export {
 export { RankedError, type RankedErrorCode } from "./errors.js";
 export type { UsersGetOptions } from "./resources/users.js";
 export type { User } from "./schemas/user.js";
-export type { RankedRequestOptions } from "./transport.js";
+export type {
+  RankedFetchOptions,
+  RankedRequestOptions,
+} from "./transport.js";
 export type {
   QueryParameters,
   QueryParameterValue,
