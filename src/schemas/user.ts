@@ -35,12 +35,38 @@ const connectionSchema = v.object({
   name: v.string(),
 });
 
-export const userSchema = v.object({
+export const userProfileSchema = v.object({
   uuid: v.string(),
   nickname: v.string(),
   roleType: integer,
   eloRate: nullableInteger,
   eloRank: nullableInteger,
+  country: v.nullable(v.string()),
+});
+
+export const seasonResultSchema = v.object({
+  last: v.nullable(
+    v.object({
+      eloRate: nullableInteger,
+      eloRank: nullableInteger,
+      phasePoint: nullableInteger,
+      percentile: v.nullable(v.number()),
+    }),
+  ),
+  highest: nullableInteger,
+  lowest: nullableInteger,
+  phases: v.array(
+    v.object({
+      phase: integer,
+      eloRate: nullableInteger,
+      eloRank: nullableInteger,
+      point: integer,
+    }),
+  ),
+});
+
+export const userSchema = v.object({
+  ...userProfileSchema.entries,
   achievements: v.object({
     display: v.array(achievementSchema),
     total: v.array(achievementSchema),
@@ -67,27 +93,44 @@ export const userSchema = v.object({
       rank: integer,
     }),
   ),
-  country: v.nullable(v.string()),
-  seasonResult: v.object({
-    last: v.nullable(
-      v.object({
-        eloRate: nullableInteger,
-        eloRank: nullableInteger,
-        phasePoint: nullableInteger,
-        percentile: v.nullable(v.number()),
-      }),
-    ),
-    highest: nullableInteger,
-    lowest: nullableInteger,
-    phases: v.array(
-      v.object({
-        phase: integer,
-        eloRate: nullableInteger,
-        eloRank: nullableInteger,
-        point: integer,
-      }),
-    ),
-  }),
+  seasonResult: seasonResultSchema,
+});
+
+export const userSeasonsSchema = v.object({
+  ...userProfileSchema.entries,
+  seasonResults: v.record(v.string(), seasonResultSchema),
+});
+
+export const userLiveSchema = v.object({
+  lastId: nullableInteger,
+  type: integer,
+  status: v.picklist([
+    "idle",
+    "counting",
+    "generate",
+    "ready",
+    "running",
+    "done",
+  ]),
+  time: integer,
+  players: v.array(userProfileSchema),
+  spectators: v.array(userProfileSchema),
+  timelines: v.array(
+    v.object({
+      uuid: v.string(),
+      time: integer,
+      type: v.string(),
+    }),
+  ),
+  completions: v.array(
+    v.object({
+      uuid: v.string(),
+      time: integer,
+    }),
+  ),
 });
 
 export type User = v.InferOutput<typeof userSchema>;
+export type UserLive = v.InferOutput<typeof userLiveSchema>;
+export type UserProfile = v.InferOutput<typeof userProfileSchema>;
+export type UserSeasons = v.InferOutput<typeof userSeasonsSchema>;

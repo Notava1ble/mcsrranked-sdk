@@ -423,6 +423,26 @@ describe("request", () => {
     expect(fetchImplementation).not.toHaveBeenCalled();
   });
 
+  it("adds the private key only when the transport opts in", async () => {
+    const receivedKeys: Array<string | null> = [];
+    const client = new RankedClient({
+      privateKey: "secret-key",
+      fetch: async (_input, init) => {
+        receivedKeys.push(new Headers(init?.headers).get("Private-Key"));
+        return new Response(
+          JSON.stringify({ status: "success", data: { ok: true } }),
+          { status: 200 },
+        );
+      },
+    });
+
+    await client.request("custom", { includePrivateKey: true });
+    await client.fetch("custom", { includePrivateKey: true });
+    await client.request("custom");
+
+    expect(receivedKeys).toEqual(["secret-key", "secret-key", null]);
+  });
+
   it.each([-1, 0.5, Number.NaN, Number.POSITIVE_INFINITY])(
     "rejects an invalid retry count: %s",
     (retries) => {

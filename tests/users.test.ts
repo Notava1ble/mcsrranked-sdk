@@ -1,109 +1,31 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
+import { RankedClient, RankedError } from "../src/index.js";
+import { matchFixture } from "./fixtures/matches.js";
 import {
-  RankedClient,
-  RankedError,
-  type ValidationIssue,
-} from "../src/index.js";
-
-const userResponse = {
-  status: "success",
-  data: {
-    uuid: "00000000000000000000000000000001",
-    nickname: "Runner",
-    roleType: 1,
-    eloRate: 1_500,
-    eloRank: 25,
-    achievements: {
-      display: [],
-      total: [
-        {
-          id: "wins",
-          date: 1_700_000_000,
-          data: [],
-          level: 2,
-          value: 42,
-          goal: 50,
-        },
-      ],
-    },
-    timestamp: {
-      firstOnline: 1_600_000_000,
-      lastOnline: 1_700_000_000,
-      lastRanked: 1_699_999_000,
-      nextDecay: null,
-    },
-    statistics: {
-      season: {
-        bestTime: { ranked: 620_000, casual: null },
-        highestWinStreak: { ranked: 4, casual: 0 },
-        currentWinStreak: { ranked: 1, casual: 0 },
-        playedMatches: { ranked: 80, casual: 0 },
-        playtime: { ranked: 60_000_000, casual: 0 },
-        completionTime: { ranked: 30_000_000, casual: 0 },
-        forfeits: { ranked: 3, casual: 0 },
-        completions: { ranked: 45, casual: 0 },
-        wins: { ranked: 50, casual: 0 },
-        loses: { ranked: 27, casual: 0 },
-      },
-      total: {
-        bestTime: { ranked: 600_000, casual: null },
-        highestWinStreak: { ranked: 6, casual: 0 },
-        currentWinStreak: { ranked: 1, casual: 0 },
-        playedMatches: { ranked: 120, casual: 0 },
-        playtime: { ranked: 90_000_000, casual: 0 },
-        completionTime: { ranked: 45_000_000, casual: 0 },
-        forfeits: { ranked: 5, casual: 0 },
-        completions: { ranked: 70, casual: 0 },
-        wins: { ranked: 75, casual: 0 },
-        loses: { ranked: 40, casual: 0 },
-      },
-    },
-    connections: {
-      discord: { id: "100000000000000001", name: "runner" },
-      twitch: { id: "runner", name: "Runner" },
-    },
-    weeklyRaces: [{ id: 10, time: 630_000, rank: 12 }],
-    country: "us",
-    seasonResult: {
-      last: {
-        eloRate: 1_500,
-        eloRank: 25,
-        phasePoint: 8,
-        percentile: null,
-      },
-      highest: 1_550,
-      lowest: 1_350,
-      phases: [{ phase: 1, eloRate: 1_500, eloRank: 25, point: 8 }],
-    },
-    futureField: "preserved",
-  },
-};
+  userFixture,
+  userLiveFixture,
+  userSeasonsFixture,
+} from "./fixtures/users.js";
 
 describe("users.get", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   it("requests a user and returns the response data", async () => {
-    const requestedUrls: string[] = [];
+    let requestedUrl: string | undefined;
     const client = new RankedClient({
       baseUrl: "https://ranked.example/api/",
       fetch: async (input) => {
-        requestedUrls.push(String(input));
-        return new Response(JSON.stringify(userResponse), {
-          headers: { "Content-Type": "application/json" },
-          status: 200,
-        });
+        requestedUrl = String(input);
+        return new Response(
+          JSON.stringify({ status: "success", data: userFixture }),
+          { status: 200 },
+        );
       },
     });
 
     const user = await client.users.get("Runner");
 
-    expect({ requestedUrls, user }).toEqual({
-      requestedUrls: ["https://ranked.example/api/users/Runner"],
-      user: userResponse.data,
-    });
+    expect(requestedUrl).toBe("https://ranked.example/api/users/Runner");
+    expect(user).toEqual(userFixture);
   });
 
   it("encodes the identifier and serializes the season option", async () => {
@@ -112,7 +34,10 @@ describe("users.get", () => {
       baseUrl: "https://ranked.example/api/",
       fetch: async (input) => {
         requestedUrl = String(input);
-        return new Response(JSON.stringify(userResponse), { status: 200 });
+        return new Response(
+          JSON.stringify({ status: "success", data: userFixture }),
+          { status: 200 },
+        );
       },
     });
 
@@ -122,128 +47,143 @@ describe("users.get", () => {
       "https://ranked.example/api/users/Runner%20Name%2FAlt?season=3",
     );
   });
+});
 
-  it("reports one issue and preserves invalid data in warn mode", async () => {
-    const invalidData = { nickname: 42, futureField: "preserved" };
-    const reportedIssues: ValidationIssue[] = [];
-    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
+describe("users.matches", () => {
+  it("requests matches with every documented query option", async () => {
+    let requestedUrl: string | undefined;
     const client = new RankedClient({
       baseUrl: "https://ranked.example/api/",
-      validation: {
-        policy: "warn",
-        onIssue: (issue) => reportedIssues.push(issue),
+      fetch: async (input) => {
+        requestedUrl = String(input);
+        return new Response(
+          JSON.stringify({ status: "success", data: [matchFixture] }),
+          { status: 200 },
+        );
       },
-      fetch: async () =>
-        new Response(JSON.stringify({ status: "success", data: invalidData }), {
-          status: 200,
-        }),
     });
 
-    const result = await client.users.get("Runner", { season: 2 });
-
-    expect(result).toEqual(invalidData);
-    expect(reportedIssues).toHaveLength(1);
-    expect(reportedIssues[0]).toMatchObject({
-      route: "users.get",
-      url: "https://ranked.example/api/users/Runner?season=2",
-      problems: expect.arrayContaining([
-        expect.objectContaining({ path: "uuid" }),
-        expect.objectContaining({ path: "nickname" }),
-      ]),
+    const matches = await client.users.matches("Runner Name/Alt", {
+      before: 100,
+      after: 20,
+      sort: "fastest",
+      count: 50,
+      type: 2,
+      season: 11,
+      excludeDecay: true,
     });
-    expect(consoleWarn).not.toHaveBeenCalled();
+
+    expect(requestedUrl).toBe(
+      "https://ranked.example/api/users/Runner%20Name%2FAlt/matches" +
+        "?before=100&after=20&sort=fastest&count=50&type=2&season=11" +
+        "&excludedecay=true",
+    );
+    expect(matches).toEqual([matchFixture]);
+  });
+});
+
+describe("users.seasons", () => {
+  it("requests and returns all season results", async () => {
+    let requestedUrl: string | undefined;
+    const client = new RankedClient({
+      baseUrl: "https://ranked.example/api/",
+      fetch: async (input) => {
+        requestedUrl = String(input);
+        return new Response(
+          JSON.stringify({ status: "success", data: userSeasonsFixture }),
+          { status: 200 },
+        );
+      },
+    });
+
+    const seasons = await client.users.seasons("Runner/Alt");
+
+    expect(requestedUrl).toBe(
+      "https://ranked.example/api/users/Runner%2FAlt/seasons",
+    );
+    expect(seasons).toEqual(userSeasonsFixture);
+  });
+});
+
+describe("users.live", () => {
+  it("sends the configured private key and returns live match data", async () => {
+    let requestedUrl: string | undefined;
+    let privateKey: string | null = null;
+    const client = new RankedClient({
+      baseUrl: "https://ranked.example/api/",
+      privateKey: "secret-key",
+      fetch: async (input, init) => {
+        requestedUrl = String(input);
+        privateKey = new Headers(init?.headers).get("Private-Key");
+        return new Response(
+          JSON.stringify({ status: "success", data: userLiveFixture }),
+          { status: 200 },
+        );
+      },
+    });
+
+    const live = await client.users.live("Runner Name");
+
+    expect(requestedUrl).toBe(
+      "https://ranked.example/api/users/Runner%20Name/live",
+    );
+    expect(privateKey).toBe("secret-key");
+    expect(live).toEqual(userLiveFixture);
   });
 
-  it("logs once and returns invalid data with the default policy", async () => {
-    const invalidData = { nickname: "Runner" };
-    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const client = new RankedClient({
-      fetch: async () =>
-        new Response(JSON.stringify({ status: "success", data: invalidData }), {
-          status: 200,
-        }),
-    });
+  it("fails before fetching when the client has no private key", async () => {
+    const fetchImplementation = vi.fn<typeof fetch>();
+    const client = new RankedClient({ fetch: fetchImplementation });
 
-    const result = await client.users.get("Runner");
-
-    expect(result).toEqual(invalidData);
-    expect(consoleWarn).toHaveBeenCalledOnce();
-  });
-
-  it("reports and throws INVALID_RESPONSE in error mode", async () => {
-    const invalidData = { nickname: "Runner" };
-    const reportedIssues: ValidationIssue[] = [];
-    const consoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
-    const client = new RankedClient({
-      validation: {
-        policy: "error",
-        onIssue: (issue) => reportedIssues.push(issue),
-      },
-      fetch: async () =>
-        new Response(JSON.stringify({ status: "success", data: invalidData }), {
-          status: 200,
-        }),
-    });
-
-    const error = await client.users.get("Runner").catch((cause) => cause);
+    const error = await client.users.live("Runner").catch((cause) => cause);
 
     expect(error).toBeInstanceOf(RankedError);
-    expect(error).toMatchObject({
-      code: "INVALID_RESPONSE",
-      details: reportedIssues[0],
-    });
-    expect(reportedIssues).toHaveLength(1);
-    expect(consoleError).not.toHaveBeenCalled();
+    expect(error).toMatchObject({ code: "MISSING_PRIVATE_KEY" });
+    expect(fetchImplementation).not.toHaveBeenCalled();
   });
 
-  it("preserves the policy when the issue callback throws", async () => {
-    const invalidData = { nickname: "Runner" };
-    const callbackError = new Error("reporter unavailable");
-    const consoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+  it("does not send the private key to public user endpoints", async () => {
+    let privateKey: string | null = null;
     const client = new RankedClient({
-      validation: {
-        onIssue: () => {
-          throw callbackError;
-        },
+      privateKey: "secret-key",
+      fetch: async (_input, init) => {
+        privateKey = new Headers(init?.headers).get("Private-Key");
+        return new Response(
+          JSON.stringify({ status: "success", data: [matchFixture] }),
+          { status: 200 },
+        );
       },
-      fetch: async () =>
-        new Response(JSON.stringify({ status: "success", data: invalidData }), {
-          status: 200,
-        }),
     });
 
-    const result = await client.users.get("Runner");
+    await client.users.matches("Runner");
 
-    expect(result).toEqual(invalidData);
-    expect(consoleError).toHaveBeenCalledOnce();
-    expect(consoleError).toHaveBeenCalledWith(
-      "MCSR Ranked validation onIssue callback failed",
-      callbackError,
-    );
+    expect(privateKey).toBeNull();
   });
+});
 
-  it("skips validation and reporting with the ignore policy", async () => {
-    const invalidData = { nickname: 42 };
-    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const consoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+const invalidResponseCases = [
+  ["users.get", (client: RankedClient) => client.users.get("Runner")],
+  ["users.matches", (client: RankedClient) => client.users.matches("Runner")],
+  ["users.seasons", (client: RankedClient) => client.users.seasons("Runner")],
+  ["users.live", (client: RankedClient) => client.users.live("Runner")],
+] satisfies ReadonlyArray<
+  readonly [string, (client: RankedClient) => Promise<unknown>]
+>;
+
+describe("user response schemas", () => {
+  it.each(invalidResponseCases)("validates %s", async (route, request) => {
+    const onIssue = vi.fn();
     const client = new RankedClient({
-      validation: "ignore",
+      privateKey: "secret-key",
+      validation: { onIssue },
       fetch: async () =>
-        new Response(JSON.stringify({ status: "success", data: invalidData }), {
+        new Response(JSON.stringify({ status: "success", data: {} }), {
           status: 200,
         }),
     });
 
-    const result = await client.users.get("Runner");
+    await request(client);
 
-    expect(result).toEqual(invalidData);
-    expect(consoleWarn).not.toHaveBeenCalled();
-    expect(consoleError).not.toHaveBeenCalled();
+    expect(onIssue).toHaveBeenCalledWith(expect.objectContaining({ route }));
   });
 });

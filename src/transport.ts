@@ -1,12 +1,14 @@
 import type { QueryParameters } from "./url.js";
 
 export interface RankedFetchOptions extends RequestInit {
+  readonly includePrivateKey?: boolean;
   readonly query?: QueryParameters;
 }
 
 export interface RankedRequestOptions {
   readonly query?: QueryParameters;
   readonly headers?: HeadersInit;
+  readonly includePrivateKey?: boolean;
   readonly signal?: AbortSignal;
 }
 
@@ -27,6 +29,10 @@ export function fetchInitWithoutQuery(
     return undefined;
   }
 
-  const { query: _query, ...init } = options;
+  const {
+    includePrivateKey: _includePrivateKey,
+    query: _query,
+    ...init
+  } = options;
   return init;
 }

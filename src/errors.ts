@@ -2,6 +2,7 @@ export type RankedErrorCode =
   | "ABORTED"
   | "HTTP_ERROR"
   | "INVALID_RESPONSE"
+  | "MISSING_PRIVATE_KEY"
   | "NETWORK_ERROR"
   | "TIMEOUT";
 

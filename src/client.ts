@@ -37,6 +37,7 @@ function assertRetries(retries: number): void {
 export interface RankedClientOptions {
   readonly baseUrl?: string;
   readonly fetch?: typeof globalThis.fetch;
+  readonly privateKey?: string;
   readonly retries?: number;
   readonly timeout?: number;
   readonly validation?: ValidationConfiguration;
@@ -45,6 +46,7 @@ export interface RankedClientOptions {
 export class RankedClient {
   readonly #baseUrl: URL;
   readonly #fetchImplementation: typeof globalThis.fetch;
+  readonly #privateKey: string | undefined;
   readonly #retries: number;
   readonly #timeout: number;
 
@@ -53,6 +55,7 @@ export class RankedClient {
   constructor(options: RankedClientOptions = {}) {
     this.#baseUrl = new URL(options.baseUrl ?? DEFAULT_BASE_URL);
     this.#fetchImplementation = options.fetch ?? globalThis.fetch;
+    this.#privateKey = options.privateKey;
     this.#timeout = options.timeout ?? DEFAULT_TIMEOUT;
     this.#retries = options.retries ?? DEFAULT_RETRIES;
     assertTimeout(this.#timeout);
@@ -67,7 +70,29 @@ export class RankedClient {
 
   fetch(path: string, options?: RankedFetchOptions): Promise<Response> {
     const url = buildUrl(this.#baseUrl, path, options?.query);
-    return this.#fetchImplementation(url, fetchInitWithoutQuery(options));
+    const init = fetchInitWithoutQuery(options);
+
+    if (options?.includePrivateKey !== true) {
+      return this.#fetchImplementation(url, init);
+    }
+
+    return this.#fetchImplementation(url, {
+      ...init,
+      headers: this.#headersWithPrivateKey(init?.headers),
+    });
+  }
+
+  #headersWithPrivateKey(headers?: HeadersInit): Headers {
+    if (this.#privateKey === undefined) {
+      throw new RankedError(
+        "MCSR Ranked private key is required for this request",
+        { code: "MISSING_PRIVATE_KEY" },
+      );
+    }
+
+    const authenticatedHeaders = new Headers(headers);
+    authenticatedHeaders.set("Private-Key", this.#privateKey);
+    return authenticatedHeaders;
   }
 
   async #requestAttempt<T>(
@@ -86,13 +111,15 @@ export class RankedClient {
         throw initialCancellationError;
       }
 
+      const headers =
+        options?.includePrivateKey === true
+          ? this.#headersWithPrivateKey(options.headers)
+          : options?.headers;
       let response: Response;
 
       try {
         response = await this.#fetchImplementation(url, {
-          ...(options?.headers === undefined
-            ? {}
-            : { headers: options.headers }),
+          ...(headers === undefined ? {} : { headers }),
           signal: cancellation.signal,
         });
       } catch (cause) {

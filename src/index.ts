@@ -5,8 +5,18 @@ export {
   type RankedClientOptions,
 } from "./client.js";
 export { RankedError, type RankedErrorCode } from "./errors.js";
-export type { UsersGetOptions } from "./resources/users.js";
-export type { User } from "./schemas/user.js";
+export type {
+  MatchSort,
+  UsersGetOptions,
+  UsersMatchesOptions,
+} from "./resources/users.js";
+export type { Match } from "./schemas/match.js";
+export type {
+  User,
+  UserLive,
+  UserProfile,
+  UserSeasons,
+} from "./schemas/user.js";
 export type {
   RankedFetchOptions,
   RankedRequestOptions,
