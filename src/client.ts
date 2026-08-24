@@ -1,6 +1,8 @@
 import { RankedError } from "./errors.js";
 import { createRequestCancellation, processResponse } from "./request.js";
+import { MatchesResource } from "./resources/matches.js";
 import { UsersResource } from "./resources/users.js";
+import { VersusResource } from "./resources/versus.js";
 import { isRetryableError, waitForRetry } from "./retry.js";
 import {
   type CompletedRequest,
@@ -51,6 +53,8 @@ export class RankedClient {
   readonly #timeout: number;
 
   readonly users: UsersResource;
+  readonly versus: VersusResource;
+  readonly matches: MatchesResource;
 
   constructor(options: RankedClientOptions = {}) {
     this.#baseUrl = new URL(options.baseUrl ?? DEFAULT_BASE_URL);
@@ -63,6 +67,14 @@ export class RankedClient {
     const validator = createResponseValidator(options.validation);
 
     this.users = new UsersResource(
+      (path, requestOptions) => this.#requestWithMetadata(path, requestOptions),
+      validator,
+    );
+    this.versus = new VersusResource(
+      (path, requestOptions) => this.#requestWithMetadata(path, requestOptions),
+      validator,
+    );
+    this.matches = new MatchesResource(
       (path, requestOptions) => this.#requestWithMetadata(path, requestOptions),
       validator,
     );

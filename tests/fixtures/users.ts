@@ -7,6 +7,15 @@ export const userProfileFixture = {
   country: "us",
 };
 
+export const opponentProfileFixture = {
+  uuid: "00000000000000000000000000000002",
+  nickname: "Opponent",
+  roleType: 1,
+  eloRate: 1_450,
+  eloRank: 40,
+  country: "ca",
+};
+
 export const seasonResultFixture = {
   last: {
     eloRate: 1_500,

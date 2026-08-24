@@ -9,7 +9,7 @@ const seedSchema = v.object({
   id: v.nullable(v.string()),
   overworld: v.nullable(v.string()),
   nether: v.nullable(v.string()),
-  endTowers: v.array(integer),
+  endTowers: v.nullable(v.array(integer)),
   variations: v.array(v.string()),
 });
 
@@ -18,6 +18,7 @@ export const matchSchema = v.object({
   type: integer,
   season: integer,
   category: v.nullable(v.string()),
+  gameMode: v.optional(v.string()),
   date: integer,
   players: v.array(userProfileSchema),
   spectators: v.array(userProfileSchema),
@@ -41,15 +42,39 @@ export const matchSchema = v.object({
   ),
   tag: v.nullable(v.string()),
   beginner: v.boolean(),
-  vod: v.array(
-    v.object({
-      uuid: v.string(),
-      url: v.string(),
-      startsAt: integer,
-    }),
+  botSource: nullableInteger,
+  seedType: v.nullable(v.string()),
+  bastionType: v.nullable(v.string()),
+  vod: v.optional(
+    v.array(
+      v.object({
+        uuid: v.string(),
+        url: v.string(),
+        startsAt: integer,
+      }),
+    ),
   ),
 });
 
 export const matchesSchema = v.array(matchSchema);
 
+export const matchDetailSchema = v.object({
+  ...matchSchema.entries,
+  completions: v.array(
+    v.object({
+      uuid: v.string(),
+      time: integer,
+    }),
+  ),
+  timelines: v.array(
+    v.object({
+      uuid: v.string(),
+      time: integer,
+      type: v.string(),
+    }),
+  ),
+  replayExist: v.boolean(),
+});
+
 export type Match = v.InferOutput<typeof matchSchema>;
+export type MatchDetail = v.InferOutput<typeof matchDetailSchema>;
