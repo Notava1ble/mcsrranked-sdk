@@ -1,0 +1,59 @@
+{
+  "name": "mcsrranked-sdk",
+  "version": "0.0.1",
+  "description": "TypeScript SDK for the MCSR Ranked API.",
+  "keywords": [
+    "mcsr",
+    "minecraft",
+    "speedrunning",
+    "ranked",
+    "sdk",
+    "api"
+  ],
+  "homepage": "https://notava1ble.github.io/mcsrranked-sdk/",
+  "bugs": {
+    "url": "https://github.com/Notava1ble/mcsrranked-sdk/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Notava1ble/mcsrranked-sdk.git"
+  },
+  "author": "Notava1ble",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "pnpm@10.34.5",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "check": "pnpm typecheck && pnpm lint",
+    "prepublishOnly": "pnpm check && pnpm build"
+  },
+  "dependencies": {
+    "valibot": "^1.4.2"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.10",
+    "typescript": "~5.9.3"
+  }
+}
