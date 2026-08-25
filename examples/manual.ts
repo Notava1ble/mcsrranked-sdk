@@ -1,9 +1,25 @@
-import { mcsrranked, type User } from "../src/index.js";
+import { mcsrranked } from "../src/index.js";
 
-const identifier = "notava1able";
+const me = await mcsrranked.users.get("NotAva1able");
 
-console.log(`Fetching ${identifier}...`);
-const user: User = await mcsrranked.users.get(identifier, {
-  season: 10,
+const myElo = me.eloRate;
+
+console.log(me.nickname, myElo);
+
+const recentMatches = await mcsrranked.users.matches(me.nickname, {
+  count: 50,
+  type: 2,
 });
-console.dir(user, { colors: true, depth: null });
+
+const changes = recentMatches
+  .map((match) => match.changes.find((entry) => entry.uuid === me.uuid)?.change)
+  .filter(
+    (change): change is number => change !== null && change !== undefined,
+  );
+const net = changes.reduce((total, change) => total + change, 0);
+
+console.log(`
+  TOTAL NET CHANGE THESE PAST 50 RANKED MATCHES: ${net}
+
+  EACH CHANGE: ${changes.join(" ")}
+  `);
