@@ -50,7 +50,7 @@ function assertRetries(retries: number): void {
 export interface RankedClientOptions {
   readonly baseUrl?: string;
   readonly fetch?: typeof globalThis.fetch;
-  readonly privateKey?: string;
+  readonly privateKey?: string | undefined;
   readonly retries?: number;
   readonly timeout?: number;
   readonly validation?: ValidationConfiguration;

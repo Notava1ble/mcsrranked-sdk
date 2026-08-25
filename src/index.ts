@@ -1,9 +1,6 @@
 import { RankedClient } from "./client.js";
 
-export {
-  RankedClient,
-  type RankedClientOptions,
-} from "./client.js";
+export { RankedClient, type RankedClientOptions } from "./client.js";
 export { RankedError, type RankedErrorCode } from "./errors.js";
 export type {
   EloLeaderboardOptions,
@@ -36,14 +33,8 @@ export type {
 } from "./schemas/user.js";
 export type { VersusStats } from "./schemas/versus.js";
 export type { WeeklyRace } from "./schemas/weekly-race.js";
-export type {
-  RankedFetchOptions,
-  RankedRequestOptions,
-} from "./transport.js";
-export type {
-  QueryParameters,
-  QueryParameterValue,
-} from "./url.js";
+export type { RankedFetchOptions, RankedRequestOptions } from "./transport.js";
+export type { QueryParameters, QueryParameterValue } from "./url.js";
 export type {
   ValidationConfiguration,
   ValidationIssue,
