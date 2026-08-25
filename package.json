@@ -44,7 +44,7 @@
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "docs:build": "mkdocs build --strict",
-    "docs:dev": "mkdocs serve",
+    "docs:dev": "mkdocs serve --livereload",
     "manual": "tsx examples/manual.ts",
     "typecheck": "tsc --project tsconfig.json",
     "test": "vitest run",
