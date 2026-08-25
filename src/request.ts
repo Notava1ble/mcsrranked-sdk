@@ -72,6 +72,11 @@ export interface RequestCancellation {
   dispose(): void;
 }
 
+export type ResponseProcessor = <T>(
+  response: Response,
+  cancellation: RequestCancellation,
+) => Promise<T>;
+
 export function createRequestCancellation(
   callerSignal: AbortSignal | undefined,
   timeout: number,
@@ -184,8 +189,21 @@ export async function processResponse<T>(
   response: Response,
   cancellation: RequestCancellation,
 ): Promise<T> {
+  const body = await processRawResponse<unknown>(response, cancellation);
+
+  return unwrapResponse<T>(response, body);
+}
+
+export async function processRawResponse<T>(
+  response: Response,
+  cancellation: RequestCancellation,
+): Promise<T> {
   const responseText = await readResponseText(response, cancellation);
   const body = parseResponseBody(response, responseText);
 
-  return unwrapResponse<T>(response, body);
+  if (!response.ok) {
+    throw createHttpError(response, getErrorDetails(body));
+  }
+
+  return body as T;
 }

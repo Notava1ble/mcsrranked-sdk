@@ -5,6 +5,11 @@ export {
   type RankedClientOptions,
 } from "./client.js";
 export { RankedError, type RankedErrorCode } from "./errors.js";
+export type {
+  EloLeaderboardOptions,
+  PhaseLeaderboardOptions,
+  RecordLeaderboardOptions,
+} from "./resources/leaderboards.js";
 export type { MatchesListOptions } from "./resources/matches.js";
 export type {
   MatchSort,
@@ -15,7 +20,14 @@ export type {
   VersusGetOptions,
   VersusMatchesOptions,
 } from "./resources/versus.js";
-export type { Match, MatchDetail } from "./schemas/match.js";
+export type {
+  EloLeaderboard,
+  PhaseLeaderboard,
+  RecordLeaderboardEntry,
+} from "./schemas/leaderboard.js";
+export type { LiveOverview } from "./schemas/live.js";
+export type { Match, MatchDetail, MatchSeed } from "./schemas/match.js";
+export type { StatusHeartbeats } from "./schemas/status.js";
 export type {
   User,
   UserLive,
@@ -23,6 +35,7 @@ export type {
   UserSeasons,
 } from "./schemas/user.js";
 export type { VersusStats } from "./schemas/versus.js";
+export type { WeeklyRace } from "./schemas/weekly-race.js";
 export type {
   RankedFetchOptions,
   RankedRequestOptions,

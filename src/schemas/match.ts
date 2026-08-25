@@ -5,7 +5,7 @@ import { userProfileSchema } from "./user.js";
 const integer = v.pipe(v.number(), v.integer());
 const nullableInteger = v.nullable(integer);
 
-const seedSchema = v.object({
+export const matchSeedSchema = v.object({
   id: v.nullable(v.string()),
   overworld: v.nullable(v.string()),
   nether: v.nullable(v.string()),
@@ -22,7 +22,7 @@ export const matchSchema = v.object({
   date: integer,
   players: v.array(userProfileSchema),
   spectators: v.array(userProfileSchema),
-  seed: v.nullable(seedSchema),
+  seed: v.nullable(matchSeedSchema),
   result: v.object({
     uuid: v.nullable(v.string()),
     time: integer,
@@ -78,3 +78,4 @@ export const matchDetailSchema = v.object({
 
 export type Match = v.InferOutput<typeof matchSchema>;
 export type MatchDetail = v.InferOutput<typeof matchDetailSchema>;
+export type MatchSeed = v.InferOutput<typeof matchSeedSchema>;
