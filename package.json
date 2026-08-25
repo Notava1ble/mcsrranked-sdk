@@ -1,6 +1,6 @@
 {
   "name": "mcsrranked-sdk",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "TypeScript SDK for the MCSR Ranked API.",
   "keywords": [
     "mcsr",
@@ -52,7 +52,8 @@
     "lint": "biome check .",
     "format": "biome check --write .",
     "check": "pnpm typecheck && pnpm test && pnpm lint",
-    "prepublishOnly": "pnpm check && pnpm build"
+    "prepack": "pnpm build",
+    "prepublishOnly": "pnpm check"
   },
   "dependencies": {
     "valibot": "^1.4.2"
