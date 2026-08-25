@@ -23,3 +23,10 @@ console.log(`
 
   EACH CHANGE: ${changes.join(" ")}
   `);
+
+const matches = await mcsrranked.matches.list({ count: 10 });
+
+for (const match of matches) {
+  const names = match.players.map((player) => player.nickname).join(" vs ");
+  console.log(`#${match.id}: ${names}`);
+}

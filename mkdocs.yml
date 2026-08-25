@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
 
-site_name: MCSRRanked SDK
+site_name: MCSR Ranked SDK
 site_description: TypeScript SDK for the MCSR Ranked API
 site_url: https://notava1ble.github.io/mcsrranked-sdk/
 repo_url: https://github.com/Notava1ble/mcsrranked-sdk
@@ -28,16 +28,44 @@ plugins:
   - search
 
 markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
+  - pymdownx.details
   - pymdownx.inlinehilite
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
 
 nav:
-  - Home: index.md
+  - Start here: index.md
+  - Guides:
+      - Get a player and their match history: guides/player-history.md
+      - Browse and filter matches: guides/matches.md
+      - Compare two players: guides/compare-players.md
+      - Read the leaderboards: guides/leaderboards.md
+      - Work with live matches and weekly races: guides/live-and-weekly-races.md
+      - Use the SDK with React and Next.js: guides/react-and-nextjs.md
+      - Handle errors: guides/error-handling.md
+  - Advanced:
+      - Authentication and private live data: advanced/authentication.md
+      - Retries, timeouts, and cancellation: advanced/reliability.md
+      - Response validation: advanced/validation.md
+      - Custom fetch and raw requests: advanced/custom-requests.md
+      - Stability and beta releases: advanced/stability.md
+  - API reference:
+      - Client: reference/client.md
+      - Users: reference/users.md
+      - Matches: reference/matches.md
+      - Versus: reference/versus.md
+      - Leaderboards: reference/leaderboards.md
+      - Live: reference/live.md
+      - Weekly races: reference/weekly-races.md
+      - Status: reference/status.md
+      - Errors: reference/errors.md
 
 strict: true
