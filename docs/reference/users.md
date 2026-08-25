@@ -13,18 +13,16 @@ users.get(identifier: string, options?: UsersGetOptions): Promise<User>
 
 ### Parameters
 
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `identifier` | `string` | Player nickname, UUID, or linked Discord ID in `discord.{id}` format |
-| `options.season` | `number` | Requests one season; the API uses the current season when omitted |
+| Parameter        | Type     | Description                                                          |
+| ---------------- | -------- | -------------------------------------------------------------------- |
+| `identifier`     | `string` | Player nickname, UUID, or linked Discord ID in `discord.{id}` format |
+| `options.season` | `number` | Requests one season; the API uses the current season when omitted    |
 
 ```ts
 const user = await mcsrranked.users.get("NotAva1able", { season: 11 });
 ```
 
-The `User` result includes the profile, achievements, timestamps, statistics,
-linked accounts, weekly race results, and season result. `eloRate` and
-`eloRank` can be `null`.
+The example above gets the `User` object for the player for season 11.
 
 ## `users.matches()`
 
@@ -39,16 +37,16 @@ users.matches(
 
 ### Parameters
 
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `identifier` | `string` | Player nickname, UUID, or linked Discord ID in `discord.{id}` format |
-| `options.after` | `number` | Gets matches after this match ID |
-| `options.before` | `number` | Gets matches before this match ID |
-| `options.count` | `number` | Limits the result to 1 through 100 matches; the API default is 20 |
-| `options.excludeDecay` | `boolean` | Excludes synthetic rank-decay matches; the API default is `false` |
-| `options.season` | `number` | Filters by season; the API default is the current season |
-| `options.sort` | `MatchSort` | Sorts by `newest`, `oldest`, `fastest`, or `slowest`; the default is `newest` |
-| `options.type` | `number` | Filters by the API's numeric match type |
+| Parameter              | Type        | Description                                                                   |
+| ---------------------- | ----------- | ----------------------------------------------------------------------------- |
+| `identifier`           | `string`    | Player nickname, UUID, or linked Discord ID in `discord.{id}` format          |
+| `options.after`        | `number`    | Gets matches after this match ID                                              |
+| `options.before`       | `number`    | Gets matches before this match ID                                             |
+| `options.count`        | `number`    | Limits the result to 1 through 100 matches; the API default is 20             |
+| `options.excludeDecay` | `boolean`   | Excludes rank-decay matches; the API default is `false`                       |
+| `options.season`       | `number`    | Filters by season; the API default is the current season                      |
+| `options.sort`         | `MatchSort` | Sorts by `newest`, `oldest`, `fastest`, or `slowest`; the default is `newest` |
+| `options.type`         | `number`    | Filters by the API's numeric match type                                       |
 
 ```ts
 const matches = await mcsrranked.users.matches("NotAva1able", {

@@ -20,7 +20,8 @@ console.log(status.uptimeList);
 24-hour uptime ratios returned by the status page.
 
 The SDK sends this request to the public status service rather than the main
-API base URL. A custom `baseUrl` does not change the status URL.
+API base URL. A custom `baseUrl` does not change the status URL, which is a
+known limitation of the current version.
 
 Monitor IDs and heartbeat status numbers can change independently of the SDK.
 See the [official API documentation](https://docs.mcsrranked.com/) for their
