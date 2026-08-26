@@ -72,8 +72,10 @@ export class RankedClient {
   readonly status: StatusResource;
 
   constructor(options: RankedClientOptions = {}) {
+    const fetchImplementation = options.fetch ?? globalThis.fetch;
+
     this.#baseUrl = new URL(options.baseUrl ?? DEFAULT_BASE_URL);
-    this.#fetchImplementation = options.fetch ?? globalThis.fetch;
+    this.#fetchImplementation = fetchImplementation.bind(globalThis);
     this.#privateKey = options.privateKey;
     this.#timeout = options.timeout ?? DEFAULT_TIMEOUT;
     this.#retries = options.retries ?? DEFAULT_RETRIES;

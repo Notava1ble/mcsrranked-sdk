@@ -37,6 +37,27 @@ describe("matches.list", () => {
 });
 
 describe("matches.get", () => {
+  it("supports receiver-sensitive fetch implementations", async () => {
+    const browserLikeFetch = function (this: unknown) {
+      if (this !== globalThis) {
+        throw new TypeError("Illegal invocation");
+      }
+
+      return Promise.resolve(
+        Response.json({
+          status: "success",
+          data: matchFixture,
+        }),
+      );
+    };
+    const client = new RankedClient({
+      fetch: browserLikeFetch as typeof fetch,
+      retries: 0,
+    });
+
+    await expect(client.matches.get(1)).resolves.toEqual(matchFixture);
+  });
+
   it("requests and returns detailed match data", async () => {
     let requestedUrl: string | undefined;
     const client = new RankedClient({
