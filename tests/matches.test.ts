@@ -46,7 +46,7 @@ describe("matches.get", () => {
       return Promise.resolve(
         Response.json({
           status: "success",
-          data: matchFixture,
+          data: matchDetailFixture,
         }),
       );
     };
@@ -55,7 +55,7 @@ describe("matches.get", () => {
       retries: 0,
     });
 
-    await expect(client.matches.get(1)).resolves.toEqual(matchFixture);
+    await expect(client.matches.get(1)).resolves.toEqual(matchDetailFixture);
   });
 
   it("requests and returns detailed match data", async () => {
